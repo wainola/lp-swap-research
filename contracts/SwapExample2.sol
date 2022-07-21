@@ -70,7 +70,7 @@ contract SwapExample2 {
         address tokenIn = WETH9;
         address tokenOut = DAI;
 
-        address realSender = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+        // address realSender = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
         // console.log("real sender %s", realSender);
 
         // Transfer the specified amount of DAI to this contract.
@@ -88,7 +88,7 @@ contract SwapExample2 {
                 tokenIn: tokenIn,
                 tokenOut: tokenOut,
                 fee: poolFee,
-                recipient: recipient,
+                recipient: msg.sender,
                 deadline: block.timestamp,
                 amountIn: amountIn,
                 amountOutMinimum: 0,
