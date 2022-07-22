@@ -24,6 +24,8 @@
 
   // // // const swapper = await SwapFractory.deploy(swapRouterAddress)
 
+  // ===============> DEPLOY HERE
+
   // const swapRouterAddress = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
   // const Swap2Factory = new ethers.ContractFactory(
   //   SwapExample2.abi,
@@ -51,18 +53,21 @@
   // const swapHandler = await SwapHandlerFactory.deploy()
   // console.log("SWAPPER HANDLER ADDRESS", swapHandler.address)
 
-  // const swapperAddress = '0xDBD6c48913473F648f64d8E9fdDeead1F1734E22'
+  // ====================> END DEPLOY HERE
+
+  // const swapperAddress = '0xf4e55515952BdAb2aeB4010f777E802D61eB384f'
 
   // const sw = new ethers.Contract(
   //   swapperAddress,
   //   SwapExampleJSON.abi
-  // )
+  //   )
 
-  // const swapper = sw.connect(signer)
+  //   const swapper = sw.connect(signer)
 
-  // console.log("Swapper address", swapper.address)
+  //   console.log("Swapper address", swapper.address)
 
-  const swapper2Address = '0x87c470437282174b3f8368c7CF1Ac03bcAe57954'
+  // ==================> INTERACTION HERE
+  const swapper2Address = '0x4B901e2Db7C412D966689E8D3CF479294C456f1e'
 
   const swapper2Contract = new ethers.Contract(
     swapper2Address,
@@ -71,7 +76,7 @@
 
   const swapper = swapper2Contract.connect(signer)
 
-  const swapHandlerAddress = '0x96E303b6D807c0824E83f954784e2d6f3614f167'
+  const swapHandlerAddress = '0xdcaa80371BDF9ff638851713f145Df074428Db19'
 
   const swapHandlerContract = new ethers.Contract(
     swapHandlerAddress,
@@ -79,6 +84,15 @@
   )
 
   const swapHandler = swapHandlerContract.connect(signer);
+  const overrides = {
+    value: ethers.utils.parseEther('10'),
+    gasLimit: ethers.utils.hexlify(50000),
+  }
+
+  await (await wethContract.deposit(overrides)).wait(1)
+
+  console.log("SIGNER BALANCE", await (await signer.getBalance()).toString())
+
 
   const balanceSigner = await wethContract.balanceOf(signer._address)
   const balanceSwapHandler = await wethContract.balanceOf(swapHandlerAddress)
@@ -87,57 +101,57 @@
   console.log("balanaces ===>>>", balanceSigner.toString(), balanceSwapHandler.toString(), balanceSwapper2.toString())
 
   // SIGNER IS DEPLOYER OF WETH SO HE HAS MONEY
-  await (await wethContract.transfer(swapHandlerAddress, 500)).wait(1)
-  await (await wethContract.transfer(swapper2Address, 500)).wait(1)
+  await (await wethContract.transfer(swapHandlerAddress, ethers.utils.parseEther('5'), { gasLimit: ethers.utils.hexlify(500000) })).wait(1)
+  await (await wethContract.transfer(swapper2Address, ethers.utils.parseEther('5'), { gasLimit: ethers.utils.hexlify(500000) })).wait(1)
 
   const approveFilter = wethContract.filters.Approval()
 
   wethContract.on(approveFilter, (sender, delegator, tokens) => console.log(`Sender ${sender} -> delegator ${delegator} -> tokens ${tokens.toString()}`))
 
-  // await (await wethContract.approve(swapHandlerAddress, 20)).wait(1)
+  await (await wethContract.approve(swapHandlerAddress, ethers.utils.parseEther('3'))).wait(1)
 
   const all1 = await wethContract.allowance(signer._address, swapHandlerAddress)
   console.log("all1 =>", all1.toString())
 
-  // await (await swapHandler.approveHandler(swapper2Address, wehtAddress), { gasLimit: ethers.utils.hexlify(50000) })
 
   const allHandler = await wethContract.allowance(swapHandlerAddress, swapper2Address)
-  console.log("allowance handler =>", allHandler.toString())
+  console.log("allowance handler =>", ethers.utils.formatEther(allHandler))
 
   const allSwapper = await wethContract.allowance(swapper2Address, swapHandlerAddress)
-  console.log("allowance swapper =>", allSwapper.toString())
+  console.log("allowance swapper =>", ethers.utils.formatEther(allSwapper))
 
   const allIDK = await wethContract.allowance(signer._address, swapHandlerAddress)
-  console.log("allowance IDK =>", allIDK.toString())
+  console.log("allowance IDK =>", ethers.utils.formatEther(allIDK))
 
-  const aa0 = await wethContract.approve(swapHandlerAddress, 20)
+  const aa0 = await wethContract.approve(swapHandlerAddress, ethers.utils.parseEther('3'))
   const aa0Tx = await aa0.wait(1)
 
-  const aa1 = await swapHandler.approveHandler(swapper2Address, wehtAddress, 12, { gasLimit: ethers.utils.hexlify(150000) })
+  const aa1 = await swapHandler.approveHandler(swapper2Address, wehtAddress, ethers.utils.parseEther('3'), { gasLimit: ethers.utils.hexlify(500000) })
   const aa1Tx = await aa1.wait(1)
 
   console.log(aa1Tx.status)
 
-
-  const a1 = await swapHandler.approve2(swapper2Address, daiAddress)
-  const a1Tx = await a1.wait(1)
-
-  console.log(a1Tx.status)
-
-  await (await daiContract.transfer(swapHandlerAddress, 500))
-
-  const balanceInDai = await daiContract.balanceOf(swapHandlerAddress)
-  console.log("bal =>", balanceInDai.toString())
-
   const swapFilter = swapper.filters.SwapExactInputSingleEvent()
 
-  swapper.on(swapFilter, (message, amountIn, amountOut) => console.log(message, amountIn.toString(), amountOut.toString()))
+  swapper.on(swapFilter, (message, amountIn, amountOut) => console.log(message, ethers.utils.formatEther(amountIn), ethers.utils.formatEther(amountOut)))
 
-  const daiAll = await daiContract.allowance(swapHandlerAddress, swapper2Address)
-  console.log("dai allowance", daiAll.toString())
+
+  // const a1 = await swapHandler.approve2(swapper2Address, daiAddress)
+  // const a1Tx = await a1.wait(1)
+
+  // console.log(a1Tx.status)
+
+  // await (await daiContract.transfer(swapHandlerAddress, 500))
+
+  // const balanceInDai = await daiContract.balanceOf(swapHandlerAddress)
+  // console.log("bal =>", balanceInDai.toString())
+
+
+  // const daiAll = await daiContract.allowance(swapHandlerAddress, swapper2Address)
+  // console.log("dai allowance", daiAll.toString())
 
   try {
-    const swapExec = await swapHandler.executeSwap(swapper2Address, 9, signer._address, { gasLimit: ethers.utils.hexlify(250000) })
+    const swapExec = await swapHandler.executeSwap(swapper2Address, ethers.utils.parseEther('1'), signer._address, { gasLimit: ethers.utils.hexlify(30000000) })
     const swapExecTx = await swapExec.wait(1)
 
     console.log("swap exec tx", swapExecTx.status)
@@ -145,71 +159,17 @@
     console.log("Error on swap exec", e)
   }
 
-  // const swapExact = await swapHandler.executeSwap(
-  //   swapper2Address,
-  //   ethers.utils.parseEther('3')
-  // )
-  // const swapTx = await swapExact.wait(1)
+  // try {
+  //   const swapExec = await swapHandler.executeSwap2(swapper2Address, ethers.utils.parseEther('1'), { gasLimit: ethers.utils.hexlify(30000000) })
+  //   const swapExecTx = await swapExec.wait(1)
 
-  // console.log("Tx Swap", swapTx.status)
-
-  // const all2 = await wethContract.allowance(signer._address, swapHandlerAddress)
-  // console.log("all2 =>", all2.toString())
-
-  // const balance = await wethContract.balanceOf(signer._address)
-
-  // console.log("Balance ether", ethers.utils.formatEther(await signer.getBalance()))
-  // console.log("Weth balance", ethers.utils.formatEther(balance))
-
-  // const overrides = {
-  //   value: ethers.utils.parseEther('2'),
-  //   gasLimit: ethers.utils.hexlify(50000),
+  //   console.log("swap exec tx", swapExecTx.status)
+  // } catch(e){
+  //   console.log("Error on swap exec", e)
   // }
 
-  // const depositWeth = await wethContract.deposit(overrides)
-  // const depositTx = await depositWeth.wait(1)
+  console.log("Balance weth", ethers.utils.formatEther(await wethContract.balanceOf(signer._address)))
+  console.log("balance DAI", ethers.utils.formatEther(await daiContract.balanceOf(signer._address)))
+  // ===============> END INTERACTION HERE
 
-  // console.log("Balance ETH", ethers.utils.formatEther(await signer.getBalance()))
-  // console.log("Balance Weth", ethers.utils.formatEther(await wethContract.balanceOf(signer._address)))
-
-  // HERE: APPROVE SWAPPER TO SPEND 1 ETHER
-  // BUT MY ACCOUNT HAS WETH TO SPEND
-  // const approve = await wethContract.approve(swapHandler.address, ethers.utils.parseEther('11'))
-  // const approvalTx = await approve.wait(1)
-
-  // const approve2 = await wethContract.approve(swapper2Address, ethers.utils.parseEther('11'))
-  // const approvalTx2 = await approve2.wait(1)
-
-  // console.log("approval status", approvalTx2.status)
-
-  // signer => handler = handler has 11 tokens
-  // handler => swapper = swapper has 11 tokens
-
-  // const txTF = await wethContract.transferFrom(signer._address, '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', ethers.utils.parseEther('1'))
-  // const waitTF = await txTF.wait(1)
-
-
-  // const allowance = await wethContract.allowance(signer._address, swapHandler.address)
-  // const allowance2 = await wethContract.allowance(signer._address, swapper2Address)
-  // console.log("ALLOWANCE FROM SIGNER TO HANDLER", allowance.toString())
-  // console.log("ALLOWANCE FROM SIGNER TO SWAPPWE", allowance2.toString())
-
-
-  // const allowance2 = await wethContract.allowance(signer._address, swapper2Address)
-
-  // console.log("allowance signer to swapper", allowance2.toString())
-
-  // // 1 WETH FOR DAI
-  // const swapExact = await swapper.swapExactInputSingle(ethers.utils.parseEther('1'))
-  // const swapTx = await swapExact.wait(1)
-  // const swapExact = await swapHandler.executeSwap(
-  //   swapper2Address,
-  //   ethers.utils.parseEther('1')
-  // )
-  // const swapTx = await swapExact.wait(1)
-
-  // console.log("Tx Swap", swapTx.status)
-
-  // console.log("Balance weth", ethers.utils.formatEther(await wethContract.balanceOf(signer._address)))
-  // console.log("balance DAI", ethers.utils.formatEther(await daiContract.balanceOf(signer._address)))
 })()

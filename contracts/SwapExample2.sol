@@ -5,8 +5,9 @@ pragma abicoder v2;
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import "hardhat/console.sol";
+import "./ISwapper.sol";
 
-contract SwapExample2 {
+contract SwapExample2 is ISwapExample {
     // For the scope of these swap examples,
     // we will detail the design considerations when using
     // `exactInput`, `exactInputSingle`, `exactOutput`, and  `exactOutputSingle`.
@@ -58,7 +59,7 @@ contract SwapExample2 {
     /// @dev The calling address must approve this contract to spend at least `amountIn` worth of its DAI for this function to succeed.
     /// @param data The exact amount of DAI that will be swapped for WETH9.
     /// @return amountOut The amount of WETH9 received.
-    function swapExactInputSingle(bytes calldata data) external returns (uint256 amountOut) {
+    function swapExactInputSingle(bytes calldata data) external override returns (uint256 amountOut) {
         uint256 amountIn;
         address recipient;
         // msg.sender must approve this contract
@@ -70,7 +71,7 @@ contract SwapExample2 {
         address tokenIn = WETH9;
         address tokenOut = DAI;
 
-        // address realSender = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+        // address realSender = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
         // console.log("real sender %s", realSender);
 
         // Transfer the specified amount of DAI to this contract.
@@ -88,15 +89,16 @@ contract SwapExample2 {
                 tokenIn: tokenIn,
                 tokenOut: tokenOut,
                 fee: poolFee,
-                recipient: msg.sender,
+                recipient: recipient,
                 deadline: block.timestamp,
                 amountIn: amountIn,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
-
+        console.log("data prepared for exactInputSingle");
         // The call to `exactInputSingle` executes the swap.
         amountOut = swapRouter.exactInputSingle(params);
+        console.log("amount out %s", amountOut);
         emit SwapExactInputSingleEvent("Swaping Exact Input", amountIn, amountOut);
     }
 

@@ -38,7 +38,8 @@ module.exports = {
       { version: '>=0.7.5' },
       { version: '=0.8.0' },
       { version: '0.4.18' },
-      { version: '0.4.22' }
+      { version: '0.4.22' },
+      { version: '=0.7.6' }
     ],
   },
   watcher: {
