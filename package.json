@@ -18,7 +18,7 @@
     "@remix-project/remixd": "^0.6.4",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
-    "@uniswap/v3-periphery": "^1.4.1",
+    "@uniswap/v3-periphery": "https://github.com/Uniswap/v3-periphery.git#0.8",
     "dotenv": "^16.0.1",
     "hardhat-watcher": "^2.3.0",
     "typechain": "^8.1.0"

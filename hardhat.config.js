@@ -81,7 +81,14 @@ module.exports = {
       { version: '=0.8.0' },
       { version: '0.4.18' },
       { version: '0.4.22' },
-      { version: '=0.7.6' }
+      { version: '=0.7.6' },
+      { version: '0.8.15',
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 2000,
+        } }
+      }
     ],
     overrides: {
       'contracts/NonfungiblePositionManager.sol': LOW_OPTIMIZER_COMPILER_SETTINGS,
