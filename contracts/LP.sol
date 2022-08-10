@@ -20,7 +20,7 @@ contract LP is IERC721Receiver {
     uint24 public constant poolFee = 100;
     uint256 public constant MAX_SLIPPAGE = 1; // 1%
 
-    /// @notice Represents the deposit of an NFT
+    // struct from Nico's solution
     struct Deposit {
         address owner;
         uint128 liquidity;
@@ -28,7 +28,7 @@ contract LP is IERC721Receiver {
         address token1;
     }
 
-    /// @dev deposits[tokenId] => Deposit
+    // maping from Nico's solution
     mapping(uint256 => Deposit) public deposits;
 
     // Implementing `onERC721Received` so this contract can receive custody of erc721 tokens
@@ -42,32 +42,6 @@ contract LP is IERC721Receiver {
 
         return this.onERC721Received.selector;
     }
-
-    // function _createDeposit(address owner, uint256 tokenId) internal {
-    //     (
-    //         ,
-    //         ,
-    //         address token0,
-    //         address token1,
-    //         ,
-    //         ,
-    //         ,
-    //         uint128 liquidity,
-    //         ,
-    //         ,
-    //         ,
-
-    //     ) = nonfungiblePositionManager.positions(tokenId);
-
-    //     // set the owner and data for position
-    //     // operator is msg.sender
-    //     deposits[tokenId] = Deposit({
-    //         owner: owner,
-    //         liquidity: liquidity,
-    //         token0: token0,
-    //         token1: token1
-    //     });
-    // }
 
     uint256 public poolCount; // number of pools, for making ID's incremental
     uint256 private _tokenId;
