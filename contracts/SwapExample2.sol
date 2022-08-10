@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.8.0;
+pragma solidity =0.7.6;
 pragma abicoder v2;
 
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
@@ -138,4 +138,8 @@ contract SwapExample2 is ISwapExample {
             TransferHelper.safeTransfer(DAI, msg.sender, amountInMaximum - amountIn);
         }
     }
+
+     function swapExactInputSingleUSDC(bytes calldata data) external override returns (uint256 amountOut){
+
+     }
 }
