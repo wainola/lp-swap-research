@@ -1,6 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { IERC165__factory, IERC20, IERC20__factory, IWETH9__factory, LP } from "../typechain-types";
 import { abi as LPABI, bytecode as LPBytecode } from '../artifacts/contracts/LP.sol/LP.json'
 const logger = require("pino")();
@@ -27,8 +27,22 @@ let poolFee: BigNumber
 
 (async () => {
   const alice = '0xff93B45308FD417dF303D6515aB04D9e89a750Ca'
+  // await network.provider.request({
+  //   method: "hardhat_impersonateAccount",
+  //   params: ["WHALE"],
+  // })
+  // const provider = ethers.getDefaultProvider('http://localhost:8551')
   const provider = new ethers.providers.JsonRpcProvider('http://localhost:8551')
+
+  try {
+    await provider.send("hardhat_impersonateAccount", [WHALE])
+  } catch (e) {
+    console.log(e)
+  }
+
   const aliceSigner = provider.getSigner(alice)
+  const whaleSigner = provider.getSigner(WHALE)
+
 
   const LPFactory = new ethers.ContractFactory(
     LPABI,
@@ -47,7 +61,7 @@ let poolFee: BigNumber
   // dai = await ethers.getContractAt("IERC20", DAI);
   // usdc = await ethers.getContractAt("IERC20", USDC);
   // weth = await ethers.getContractAt('IWETH9', WETH)
-  
+
   let dai = new ethers.Contract(DAI, IERC20__factory.abi)
   let usdc = new ethers.Contract(USDC, IERC20__factory.abi)
   let weth = new ethers.Contract(WETH, IWETH9__factory.abi)
@@ -57,17 +71,32 @@ let poolFee: BigNumber
   logger.info(`usdc address: ${usdc.address}`)
   logger.info(`weth address: ${weth.address}`)
 
+  // const daiConnected = await dai.connect(whaleSigner)
+
+  // console.log("")
+  // console.log("DAI BALANCE ALICE BEFORE", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
+
+  //  try {
+  //   const transferToAlice = await daiConnected.transfer(aliceSigner._address, BigNumber.from(1000n * 10n ** 18n))
+  //   await transferToAlice.wait()
+  // } catch (e) {
+  //   console.log("Error =>", e);
+  // }
+
+  // console.log("")
+  // console.log("DAI BALANCE ALICE AFTER ==>", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
 
   const tx = await LPContract.addPool(dai.address, usdc.address, poolFee);
   await tx.wait();
-  // // const tx2 = await LPContract.addPool(weth.address, usdc.address, BigNumber.from('3000'))
-  // // await tx2.wait()
 
-  // const whale = await ethers.getImpersonatedSigner(WHALE);
-  const whale = provider.getSigner(WHALE)
-  const whaleDaiBalance = await dai.connect(whale).balanceOf(whale._address);
+  console.log("")
+  console.log("DAI BALANCE ALICE", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
+  console.log("")
+
+
+  const whaleDaiBalance = await dai.connect(whaleSigner).balanceOf(whaleSigner._address);
   console.log("🚀 ~ file: LP.ts ~ line 45 ~ whaleDaiBalance", whaleDaiBalance)
-  const whaleUsdcBalance = await usdc.connect(whale).balanceOf(whale._address);
+  const whaleUsdcBalance = await usdc.connect(whaleSigner).balanceOf(whaleSigner._address);
   console.log("🚀 ~ file: LP.ts ~ line 47 ~ whaleUsdcBalance", whaleUsdcBalance)
 
   const aliceBalanceBefore = await aliceSigner.getBalance()
@@ -76,32 +105,49 @@ let poolFee: BigNumber
   daiAmount = BigNumber.from(1000n * 10n ** 18n);
   usdcAmount = ethers.utils.parseUnits("1000.0", 6);
 
-  // const wethConnected = await weth.connect(aliceSigner)
-  // console.log(wethConnected)
-
   await (weth.connect(aliceSigner) as any).deposit({ value: BigNumber.from(1000n * 10n ** 18n).mul(2), gasLimit: GAS_LIMIT })
 
-  // await aliceSigner.sendTransaction({
-  //   to: whale._address,
-  //   value: aliceBalanceBefore.div(2),
-  //   gasLimit: GAS_LIMIT,
-  // });
+  await aliceSigner.sendTransaction({
+    to: whaleSigner._address,
+    value: aliceBalanceBefore.div(2),
+    gasLimit: GAS_LIMIT,
+  });
 
-  // await dai.connect(whale).transfer(aliceSigner._address, daiAmount);
-  // await usdc.connect(whale).transfer(aliceSigner._address, usdcAmount);
+  const daiConnected = await dai.connect(whaleSigner)
 
-  // await weth.connect(aliceSigner).transfer(whale._address, BigNumber.from(1000n * 10n ** 18n))
+  console.log("")
+  console.log("DAI BALANCE ALICE BEFORE =>>", await daiConnected.balanceOf(aliceSigner._address))
+  console.log("")
 
-  // const daiOwnerBalance = await dai.balanceOf(owner.address);
-  // const usdcOwnerBalance = await usdc.balanceOf(owner.address);
-  // const whaleBalanceWeth = await weth.balanceOf(whale.address)
+  try {
+    const transferToAlice = await daiConnected.transfer(aliceSigner._address, daiAmount)
+    await transferToAlice.wait()
+  } catch (e) {
+    console.log("Error DAI CONNECTED =>", e);
+  }
 
-  // console.log("whaleBalance WETH", whaleBalanceWeth)
-  // logger.info(`dai owner balance before: ${daiOwnerBalance}`);
-  // logger.info(`usdc owner balance before: ${usdcOwnerBalance}`);
+  console.log("")
+  console.log("DAI BALANCE ALICE AFTER ==>", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
 
-  // wethAmount = ethers.utils.parseUnits("0.5", "ether")
+  try {
+    const transferToAliceUSDC = await usdc.connect(whaleSigner).transfer(aliceSigner._address, usdcAmount);
+    await transferToAliceUSDC.wait()
+  } catch(e){
+    console.log("Error USDC CONNECTED =>", e)
+  }
+  
+  await weth.connect(aliceSigner).transfer(whaleSigner._address, BigNumber.from(1000n * 10n ** 18n))
+  
+  const usdcOwnerBalance = await usdc.connect(whaleSigner).balanceOf(aliceSigner._address);
+  const daiOwnerBalance = await dai.connect(whaleSigner).balanceOf(aliceSigner._address);
+  const whaleBalanceWeth = await weth.connect(whaleSigner).balanceOf(aliceSigner._address)
+  
+  console.log("whaleBalance WETH", whaleBalanceWeth)
+  logger.info(`dai owner balance before: ${daiOwnerBalance}`);
+  logger.info(`usdc owner balance before: ${usdcOwnerBalance}`);
 
-  // await weth.connect(whale).transfer(owner.address, wethAmount)
+  wethAmount = ethers.utils.parseUnits("0.5", "ether")
+
+  await weth.connect(whaleSigner).transfer(aliceSigner._address, wethAmount)
 
 })()
