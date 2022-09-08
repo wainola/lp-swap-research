@@ -150,4 +150,11 @@ let poolFee: BigNumber
 
   await weth.connect(whaleSigner).transfer(aliceSigner._address, wethAmount)
 
+  await (await dai.connect(aliceSigner).approve(LPContract.address, daiAmount)).wait(1)
+  await (await usdc.connect(aliceSigner).approve(LPContract.address, usdcAmount)).wait(1)
+
+  console.log("APPROVED!!!")
+  const txLP = await LPContract.connect(aliceSigner).mintPosition2(daiAmount, usdcAmount)
+  await txLP.wait(1)
+
 })()
