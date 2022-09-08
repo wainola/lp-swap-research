@@ -94,6 +94,7 @@ contract LP is IERC721Receiver {
             isActive: true
         });
         poolCount += 1; // This for making ID's incremental
+        console.log("Pool added to struct of Pools");
     }
 
     function mintPosition(

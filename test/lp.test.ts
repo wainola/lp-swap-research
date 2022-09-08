@@ -26,7 +26,6 @@ describe('LP', () => {const logger = require("pino")();
   beforeEach(async () => {
     [owner, user] = await ethers.getSigners();
 
-      // deploy SupplyUni
       const liquExamplesFactory = await ethers.getContractFactory("LP");
       LPD = (await liquExamplesFactory.deploy()) as LP
       await LPD.deployed();
