@@ -76,7 +76,7 @@ module.exports = {
       loggingEnabled: true,
       forking: {
         url: alchemyApiKey,
-        blockNumber: 13909533,
+        blockNumber: 13909542,
       },
       accounts: [
         {

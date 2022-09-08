@@ -29,7 +29,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.0"
   },
   "scripts": {
-    "node1": "yarn hardhat --config ./nodes/node1/hardhat-config.js node --port 8851",
-    "node2": "yarn hardhat --config ./nodes/node2/hardhat-config.js node --port 8852"
+    "node1": "yarn hardhat --config ./nodes/node1/hardhat-config.js node --port 8551",
+    "node2": "yarn hardhat --config ./nodes/node2/hardhat-config.js node --port 8552"
   }
 }
