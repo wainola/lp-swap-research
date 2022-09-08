@@ -2,6 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { ethers, network } from "hardhat";
 import { IERC165__factory, IERC20, IERC20__factory, IWETH9__factory, LP } from "../typechain-types";
+import { Bridge__factory, GenericHandler__factory} from '@chainsafe/chainbridge-contracts'
 import { abi as LPABI, bytecode as LPBytecode } from '../artifacts/contracts/LP.sol/LP.json'
 const logger = require("pino")();
 
@@ -12,6 +13,9 @@ const WHALE = "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2"; //FTX Whale
 const GAS_LIMIT = 2074040;
 const nonFungiblePositionManagerAddress =
   "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
+
+const bridgeAddress = '0xF75ABb9ABED5975d1430ddCF420bEF954C8F5235'
+const genericHandler = '0x7ec51Af51bf6f6f4e3C2E87096381B2cf94f6d74'
 
 // let dai: IERC20
 // let weth: IERC20
@@ -27,21 +31,35 @@ let poolFee: BigNumber
 
 (async () => {
   const alice = '0xff93B45308FD417dF303D6515aB04D9e89a750Ca'
+  const charlie = '0x24962717f8fA5BA3b931bACaF9ac03924EB475a0'
+
   // await network.provider.request({
-  //   method: "hardhat_impersonateAccount",
+    //   method: "hardhat_impersonateAccount",
   //   params: ["WHALE"],
   // })
   // const provider = ethers.getDefaultProvider('http://localhost:8551')
   const provider = new ethers.providers.JsonRpcProvider('http://localhost:8551')
-
+  
   try {
     await provider.send("hardhat_impersonateAccount", [WHALE])
   } catch (e) {
     console.log(e)
   }
-
+  
   const aliceSigner = provider.getSigner(alice)
+  const charlieSigner = provider.getSigner(charlie)
   const whaleSigner = provider.getSigner(WHALE)
+  const bridgeContract = new ethers.Contract(
+    bridgeAddress,
+    Bridge__factory.abi
+  )
+
+  const genericContract = new ethers.Contract(
+    genericHandler,
+    GenericHandler__factory.abi
+  )
+
+  
 
 
   const LPFactory = new ethers.ContractFactory(
