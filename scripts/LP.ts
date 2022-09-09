@@ -1,5 +1,5 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers";
+import { BigNumber, BytesLike } from "ethers";
 import { ethers, network } from "hardhat";
 import { IERC165__factory, IERC20, IERC20__factory, IWETH9__factory, LP } from "../typechain-types";
 import { Bridge__factory, GenericHandler__factory} from '@chainsafe/chainbridge-contracts'
@@ -59,8 +59,30 @@ let poolFee: BigNumber
     GenericHandler__factory.abi
   )
 
-  
+  const bridgeInstace = bridgeContract.connect(charlieSigner)
+  const genericInstance = genericContract.connect(charlieSigner)
 
+  const blankSignature = '0x00000000'
+
+  const ILPContract = new ethers.utils.Interface(LPABI)
+  const addPoolSig = ILPContract.getSighash('addPool')
+  const mintPositionSig = ILPContract.getSighash('mintPosition')
+
+  //@ts-ignore
+  const addPoolSigResourceId = ethers.utils.hexZeroPad(12, 32)
+  //@ts-ignore
+  const mintPositionResourceId = ethers.utils.hexZeroPad(13, 32)
+  //@ts-ignore
+  const LPcontractResourceId = ethers.utils.hexZeroPad(9, 32)
+
+  console.log("")
+  console.log("ADD POOL SIG HASH", addPoolSig)
+  console.log("MINT POSITION SIG HASH", mintPositionSig)
+  console.log("")
+
+  console.log("RESOURCE ID ADD POOL", addPoolSigResourceId)
+  console.log('MINT POSITION', mintPositionResourceId)
+  console.log("LP CONTRACT RESOURCE ID", LPcontractResourceId)
 
   const LPFactory = new ethers.ContractFactory(
     LPABI,
@@ -71,14 +93,38 @@ let poolFee: BigNumber
   const LPContract = await LPFactory.deploy()
   logger.info(`LP contract address: ${LPContract.address}`)
 
-  // [owner, user] = await ethers.getSigners();
-  // console.log("🚀 ~ file: LP.ts ~ line 28 ~ user", user)
-  // console.log("🚀 ~ file: LP.ts ~ line 28 ~ owner", owner)
+  //TODO: this is temporary since GENERIC HANDLER can only setup one signature per address
+  // try {
+  //   await (await bridgeInstace.adminSetGenericResource(
+  //     genericHandler,
+  //     LPcontractResourceId,
+  //     LPContract.address,
+  //     addPoolSig,
+  //     0,
+  //     blankSignature
+  //   )).wait(1)
+  // } catch(e) {
+  //   console.log("Error set admin generic resource for addPool function", e)
+  // }
 
-  // add a pool to LP (DAI/USDC 0.01%)
-  // dai = await ethers.getContractAt("IERC20", DAI);
-  // usdc = await ethers.getContractAt("IERC20", USDC);
-  // weth = await ethers.getContractAt('IWETH9', WETH)
+  try {
+    await (await bridgeInstace.adminSetGenericResource(
+      genericHandler,
+      LPcontractResourceId,
+      LPContract.address,
+      mintPositionSig,
+      0,
+      blankSignature
+    )).wait(1)
+  } catch(e){
+    console.log("Error set admin generic resource for mintPosition function", e)
+  }
+
+  const mintPositionFunctionFromLPAddress = await genericInstance._contractAddressToDepositFunctionSignature(LPContract.address)
+
+  console.log("Add Pool from contract address", mintPositionFunctionFromLPAddress)
+
+  return
 
   let dai = new ethers.Contract(DAI, IERC20__factory.abi)
   let usdc = new ethers.Contract(USDC, IERC20__factory.abi)
