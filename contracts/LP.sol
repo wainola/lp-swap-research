@@ -110,6 +110,7 @@ contract LP is IERC721Receiver {
             uint256 amount1
         )
     {
+        console.log("msg sender %s", msg.sender);
         Pool memory pool = pools[poolId];
         TransferHelper.safeTransferFrom(
             pool.token0,
@@ -183,6 +184,7 @@ contract LP is IERC721Receiver {
             uint256 amount1
         )
     {
+        console.log("MSG SENDER %s", msg.sender);
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), a0);
         TransferHelper.safeTransferFrom(USDC, msg.sender, address(this), a1);
         console.log("safe transfer executed");

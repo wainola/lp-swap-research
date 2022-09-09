@@ -2,7 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, BytesLike } from "ethers";
 import { ethers, network } from "hardhat";
 import { IERC165__factory, IERC20, IERC20__factory, IWETH9__factory, LP } from "../typechain-types";
-import { Bridge__factory, GenericHandler__factory} from '@chainsafe/chainbridge-contracts'
+import { Bridge__factory, GenericHandler__factory, BasicFeeHandler__factory} from '@chainsafe/chainbridge-contracts'
 import { abi as LPABI, bytecode as LPBytecode } from '../artifacts/contracts/LP.sol/LP.json'
 const logger = require("pino")();
 
@@ -16,6 +16,7 @@ const nonFungiblePositionManagerAddress =
 
 const bridgeAddress = '0xF75ABb9ABED5975d1430ddCF420bEF954C8F5235'
 const genericHandler = '0x7ec51Af51bf6f6f4e3C2E87096381B2cf94f6d74'
+const basicFeeAddress = '0xA8254f6184b82D7307257966b95D7569BD751a90'
 
 // let dai: IERC20
 // let weth: IERC20
@@ -49,6 +50,7 @@ let poolFee: BigNumber
   const aliceSigner = provider.getSigner(alice)
   const charlieSigner = provider.getSigner(charlie)
   const whaleSigner = provider.getSigner(WHALE)
+
   const bridgeContract = new ethers.Contract(
     bridgeAddress,
     Bridge__factory.abi
@@ -59,8 +61,14 @@ let poolFee: BigNumber
     GenericHandler__factory.abi
   )
 
+  const basicFeeContract = new ethers.Contract(
+    basicFeeAddress,
+    BasicFeeHandler__factory.abi
+  )
+
   const bridgeInstace = bridgeContract.connect(charlieSigner)
   const genericInstance = genericContract.connect(charlieSigner)
+  const basicFeeInstance = basicFeeContract.connect(charlieSigner)
 
   const blankSignature = '0x00000000'
 
@@ -124,8 +132,6 @@ let poolFee: BigNumber
 
   console.log("Add Pool from contract address", mintPositionFunctionFromLPAddress)
 
-  return
-
   let dai = new ethers.Contract(DAI, IERC20__factory.abi)
   let usdc = new ethers.Contract(USDC, IERC20__factory.abi)
   let weth = new ethers.Contract(WETH, IWETH9__factory.abi)
@@ -157,7 +163,7 @@ let poolFee: BigNumber
   console.log("DAI BALANCE ALICE", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
   console.log("")
 
-
+  // BALANCES OF WHALE IN DAI AND USDC
   const whaleDaiBalance = await dai.connect(whaleSigner).balanceOf(whaleSigner._address);
   console.log("🚀 ~ file: LP.ts ~ line 45 ~ whaleDaiBalance", whaleDaiBalance)
   const whaleUsdcBalance = await usdc.connect(whaleSigner).balanceOf(whaleSigner._address);
@@ -220,5 +226,47 @@ let poolFee: BigNumber
   console.log("APPROVED!!!")
   const txLP = await LPContract.connect(aliceSigner).mintPosition2(daiAmount, usdcAmount)
   await txLP.wait(1)
+
+  /**
+   * --------------------------------------------------
+   * --------------------------------------------------
+   * BRIDGE STUFF
+   * --------------------------------------------------
+   * --------------------------------------------------
+   */
+
+  // APPROVING TO GENERIC HANDLER
+  await(
+    await dai.connect(aliceSigner).approve(genericInstance.address, daiAmount)
+  ).wait(1)
+
+  await (
+    await usdc.connect(aliceSigner).approve(genericInstance.address, usdcAmount)
+  ).wait(1)
+
+  // HERE WE DEFINE THE ENCODED DATA TO SEND TO THE DEPOSIT
+
+  // @ts-ignore
+  const depositData = `0x${ethers.utils.hexZeroPad(100, 32).substr(2) + ethers.utils.hexZeroPad(aliceSigner._address.length, 32).substr(2) + aliceSigner._address.substr(2)}`
+
+  let fee
+
+  try {
+    const calculatedFee = await basicFeeInstance.calculateFee(
+      aliceSigner._address,
+      1,
+      2,
+      LPcontractResourceId,
+      depositData,
+      '0x00'
+    )
+
+    console.log("CALCULATED FEE", calculatedFee[0])
+    fee = calculatedFee[0]
+  } catch (e) {
+    console.log("Error on calculating fee", e)
+  }
+
+  
 
 })()
