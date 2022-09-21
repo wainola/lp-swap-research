@@ -2,8 +2,10 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, BytesLike } from "ethers";
 import { ethers, network } from "hardhat";
 import { IERC165__factory, IERC20, IERC20__factory, IWETH9__factory, LP } from "../typechain-types";
-import { Bridge__factory, GenericHandler__factory, BasicFeeHandler__factory} from '@chainsafe/chainbridge-contracts'
+import { Bridge__factory, GenericHandler__factory, BasicFeeHandler__factory } from '@chainsafe/chainbridge-contracts'
+import { createGenericDepositData, createResourceID } from './uitls'
 import { abi as LPABI, bytecode as LPBytecode } from '../artifacts/contracts/LP.sol/LP.json'
+import LPContractJSON from './deploy.json'
 const logger = require("pino")();
 
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -14,10 +16,11 @@ const GAS_LIMIT = 2074040;
 const nonFungiblePositionManagerAddress =
   "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
 
-const bridgeAddress = '0xF75ABb9ABED5975d1430ddCF420bEF954C8F5235'
-const genericHandler = '0x7ec51Af51bf6f6f4e3C2E87096381B2cf94f6d74'
-const basicFeeAddress = '0xA8254f6184b82D7307257966b95D7569BD751a90'
-
+const bridgeAddress = '0x77b491446DCC8ec91f1158D85af0a78146AbDA26';
+const genericHandler = '0x2Db7D21Fb4d93E7507ADF31625197dF2ad608A1D';
+const basicFeeAddress = '0xb399ABad6c0e1BDBF265B4A9Bf822b0a92A60866';
+const feeRouter = '0xB36a0Cb9fa49DCC142A3B78b84F77dBEDbc13D33'
+const lpContractAddress = '0x153e09BFB739D2a435907622f8ef30BD8194d53a'
 // let dai: IERC20
 // let weth: IERC20
 // let usdc: IERC20
@@ -35,18 +38,18 @@ let poolFee: BigNumber
   const charlie = '0x24962717f8fA5BA3b931bACaF9ac03924EB475a0'
 
   // await network.provider.request({
-    //   method: "hardhat_impersonateAccount",
+  //   method: "hardhat_impersonateAccount",
   //   params: ["WHALE"],
   // })
   // const provider = ethers.getDefaultProvider('http://localhost:8551')
   const provider = new ethers.providers.JsonRpcProvider('http://localhost:8551')
-  
+
   try {
     await provider.send("hardhat_impersonateAccount", [WHALE])
   } catch (e) {
     console.log(e)
   }
-  
+
   const aliceSigner = provider.getSigner(alice)
   const charlieSigner = provider.getSigner(charlie)
   const whaleSigner = provider.getSigner(WHALE)
@@ -74,14 +77,17 @@ let poolFee: BigNumber
 
   const ILPContract = new ethers.utils.Interface(LPABI)
   const addPoolSig = ILPContract.getSighash('addPool')
-  const mintPositionSig = ILPContract.getSighash('mintPosition')
+  const mintPositionSig = ILPContract.getSighash('mintPosition2')
 
   //@ts-ignore
   const addPoolSigResourceId = ethers.utils.hexZeroPad(12, 32)
   //@ts-ignore
   const mintPositionResourceId = ethers.utils.hexZeroPad(13, 32)
   //@ts-ignore
-  const LPcontractResourceId = ethers.utils.hexZeroPad(9, 32)
+  const LPcontractResourceId = createResourceID(
+    lpContractAddress,
+    1
+  )
 
   console.log("")
   console.log("ADD POOL SIG HASH", addPoolSig)
@@ -92,43 +98,8 @@ let poolFee: BigNumber
   console.log('MINT POSITION', mintPositionResourceId)
   console.log("LP CONTRACT RESOURCE ID", LPcontractResourceId)
 
-  const LPFactory = new ethers.ContractFactory(
-    LPABI,
-    LPBytecode,
-    aliceSigner
-  )
 
-  const LPContract = await LPFactory.deploy()
-  logger.info(`LP contract address: ${LPContract.address}`)
-
-  //TODO: this is temporary since GENERIC HANDLER can only setup one signature per address
-  // try {
-  //   await (await bridgeInstace.adminSetGenericResource(
-  //     genericHandler,
-  //     LPcontractResourceId,
-  //     LPContract.address,
-  //     addPoolSig,
-  //     0,
-  //     blankSignature
-  //   )).wait(1)
-  // } catch(e) {
-  //   console.log("Error set admin generic resource for addPool function", e)
-  // }
-
-  try {
-    await (await bridgeInstace.adminSetGenericResource(
-      genericHandler,
-      LPcontractResourceId,
-      LPContract.address,
-      mintPositionSig,
-      0,
-      blankSignature
-    )).wait(1)
-  } catch(e){
-    console.log("Error set admin generic resource for mintPosition function", e)
-  }
-
-  const mintPositionFunctionFromLPAddress = await genericInstance._contractAddressToDepositFunctionSignature(LPContract.address)
+  const mintPositionFunctionFromLPAddress = await genericInstance._contractAddressToDepositFunctionSignature(LPContractJSON.LPAddress)
 
   console.log("Add Pool from contract address", mintPositionFunctionFromLPAddress)
 
@@ -156,8 +127,14 @@ let poolFee: BigNumber
   // console.log("")
   // console.log("DAI BALANCE ALICE AFTER ==>", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
 
-  const tx = await LPContract.addPool(dai.address, usdc.address, poolFee);
-  await tx.wait();
+  // NOTE: ADDING THE POOL TO THE STRUCT
+  // const tx = await LPContract.addPool(dai.address, usdc.address, poolFee);
+  // await tx.wait();
+
+  const LPContract = new ethers.Contract(
+    lpContractAddress,
+    LPABI
+  )
 
   console.log("")
   console.log("DAI BALANCE ALICE", await dai.connect(aliceSigner).balanceOf(aliceSigner._address))
@@ -202,16 +179,16 @@ let poolFee: BigNumber
   try {
     const transferToAliceUSDC = await usdc.connect(whaleSigner).transfer(aliceSigner._address, usdcAmount);
     await transferToAliceUSDC.wait()
-  } catch(e){
+  } catch (e) {
     console.log("Error USDC CONNECTED =>", e)
   }
-  
+
   await weth.connect(aliceSigner).transfer(whaleSigner._address, BigNumber.from(1000n * 10n ** 18n))
-  
+
   const usdcOwnerBalance = await usdc.connect(whaleSigner).balanceOf(aliceSigner._address);
   const daiOwnerBalance = await dai.connect(whaleSigner).balanceOf(aliceSigner._address);
   const whaleBalanceWeth = await weth.connect(whaleSigner).balanceOf(aliceSigner._address)
-  
+
   console.log("whaleBalance WETH", whaleBalanceWeth)
   logger.info(`dai owner balance before: ${daiOwnerBalance}`);
   logger.info(`usdc owner balance before: ${usdcOwnerBalance}`);
@@ -220,35 +197,54 @@ let poolFee: BigNumber
 
   await weth.connect(whaleSigner).transfer(aliceSigner._address, wethAmount)
 
-  await (await dai.connect(aliceSigner).approve(LPContract.address, daiAmount)).wait(1)
-  await (await usdc.connect(aliceSigner).approve(LPContract.address, usdcAmount)).wait(1)
+  await (await dai.connect(aliceSigner).approve(lpContractAddress, daiAmount)).wait(1)
+  await (await usdc.connect(aliceSigner).approve(lpContractAddress, usdcAmount)).wait(1)
 
   console.log("APPROVED!!!")
   const txLP = await LPContract.connect(aliceSigner).mintPosition2(daiAmount, usdcAmount)
   await txLP.wait(1)
 
-  /**
-   * --------------------------------------------------
-   * --------------------------------------------------
-   * BRIDGE STUFF
-   * --------------------------------------------------
-   * --------------------------------------------------
-   */
+  // /**
+  //  * --------------------------------------------------
+  //  * --------------------------------------------------
+  //  * BRIDGE STUFF
+  //  * --------------------------------------------------
+  //  * --------------------------------------------------
+  //  */
 
   // APPROVING TO GENERIC HANDLER
   await(
-    await dai.connect(aliceSigner).approve(genericInstance.address, daiAmount)
+    await dai.connect(charlieSigner).approve(genericInstance.address, daiAmount)
   ).wait(1)
 
   await (
-    await usdc.connect(aliceSigner).approve(genericInstance.address, usdcAmount)
+    await usdc.connect(charlieSigner).approve(genericInstance.address, usdcAmount)
   ).wait(1)
+
+  console.log("ALLOWANCE FROM CHARLIE TO GENERIC ON DAI ===>", await dai.connect(charlieSigner).allowance(charlieSigner._address, genericInstance.address))
+
+  console.log("ALLOWANCE FROM CHARLIE TO GENERIC ON USDC ===>", await usdc.connect(charlieSigner).allowance(charlieSigner._address, genericInstance.address))
+
+  // CALLING APROVE ON THE SAME AMOUNTS BUT HERE ON THE GENERIC HANDLER CONTRACT
+  // HERE WE APPROVE THE LP TO SPENT THE TOKENS FROM THE GENERIC
+  try {
+    await ( await genericInstance.approveToLP(
+      lpContractAddress,
+      daiAmount,
+      usdcAmount
+    )).wait()
+  } catch (e) {
+    console.log("Error on approving from generic to LP", e)
+  }
+
+  // CHECKING NOW THE ALLOWANCE FROM GENERIC TO LP CONTRACT
+  console.log("ALLOWANCE FROM GENERIC TO LP CONTRACT IN DAI ===>", await dai.connect(charlieSigner).allowance(genericInstance.address, lpContractAddress))
+  console.log("ALLOWANCE FROM GENERIC TO LP CONTRACT IN USDC ===>", await usdc.connect(charlieSigner).allowance(genericInstance.address, lpContractAddress))
 
   // HERE WE DEFINE THE ENCODED DATA TO SEND TO THE DEPOSIT
 
   // @ts-ignore
   const depositData = `0x${ethers.utils.hexZeroPad(100, 32).substr(2) + ethers.utils.hexZeroPad(aliceSigner._address.length, 32).substr(2) + aliceSigner._address.substr(2)}`
-
   let fee
 
   try {
@@ -267,6 +263,37 @@ let poolFee: BigNumber
     console.log("Error on calculating fee", e)
   }
 
-  
+  // ENCODING DATA
+
+  const encodedMintPosition2Data = ethers.utils.defaultAbiCoder.encode(
+    ['uint256', 'uint256'],
+    [daiAmount, usdcAmount]
+  )
+
+  // const encodedAddPool = ethers.utils.defaultAbiCoder.encode(
+  //   ['address', 'address', 'uint24'],
+  //   [dai.address, usdc.address, poolFee]
+  // )
+
+  // const genericDepositData = createGenericDepositData(encodedAddPool)
+
+  const genericDepositData = createGenericDepositData(encodedMintPosition2Data)
+
+  try {
+    const deposit = await bridgeInstace.deposit(
+      2,
+      LPcontractResourceId,
+      genericDepositData,
+      '0x00',
+      {
+        value: fee,
+        gasLimit: GAS_LIMIT
+      }
+    )
+
+    await deposit.wait(1)
+  } catch (e) {
+    console.log("Error on deposit with generic data", e)
+  }
 
 })()

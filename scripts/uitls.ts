@@ -1,8 +1,8 @@
-const toHex = (covertThis: any, padding: any) => {
+export const toHex = (covertThis: any, padding: any) => {
   return ethers.utils.hexZeroPad(ethers.utils.hexlify(covertThis), padding);
 };
 
-const createGenericDepositData = (hexMetaData: any) => {
+export const createGenericDepositData = (hexMetaData: any) => {
   if (hexMetaData === null) {
     return '0x' +
       toHex(0, 32).substr(2) // len(metaData) (32 bytes)
@@ -13,4 +13,6 @@ const createGenericDepositData = (hexMetaData: any) => {
     hexMetaData.substr(2)
 };
 
-module.exports = { toHex, createGenericDepositData }
+export const createResourceID = (contractAddress: any, domainID: any) => {
+  return toHex(contractAddress + toHex(domainID, 1).substr(2), 32)
+}

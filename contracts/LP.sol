@@ -5,6 +5,7 @@ pragma abicoder v2;
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
@@ -54,6 +55,11 @@ contract LP is IERC721Receiver {
     }
     /// @dev pools[poolId] => Pool
     mapping(uint256 => Pool) public pools;
+
+    function deletePool(uint256 poolId) external {
+        delete pools[poolId];
+        console.log("pool deleted!");
+    }
 
     /// @notice adds a new pool to the strategy
     function addPool(
@@ -185,8 +191,11 @@ contract LP is IERC721Receiver {
         )
     {
         console.log("MSG SENDER %s", msg.sender);
+
         TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), a0);
+        console.log("safe transfer from DAI");
         TransferHelper.safeTransferFrom(USDC, msg.sender, address(this), a1);
+        console.log("safe transfer from USDC");
         console.log("safe transfer executed");
 
         TransferHelper.safeApprove(

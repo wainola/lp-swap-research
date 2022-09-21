@@ -1,5 +1,9 @@
 # Swap/LP stuff
 
+## Setup
+
+
+
 ```bash
 yarn
 # create env file with alchemy https key
